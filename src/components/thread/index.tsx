@@ -211,8 +211,21 @@ export function Thread() {
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 
+    // Build context with artifact context, listingId, and user_name
+    const customContext: Record<string, unknown> = {
+      ...(Object.keys(artifactContext).length > 0 ? artifactContext : {}),
+    };
+
+    // Add listingId and user_name if they exist
+    if (stream.listingId) {
+      customContext.listingId = stream.listingId;
+    }
+    if (stream.user_name) {
+      customContext.user_name = stream.user_name;
+    }
+
     const context =
-      Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
+      Object.keys(customContext).length > 0 ? customContext : undefined;
 
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },

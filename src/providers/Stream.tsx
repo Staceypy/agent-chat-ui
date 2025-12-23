@@ -24,6 +24,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
+import { createClient } from "./client";
 
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
@@ -39,7 +40,12 @@ const useTypedStream = useStream<
   }
 >;
 
-type StreamContextType = ReturnType<typeof useTypedStream>;
+type StreamContextType = ReturnType<typeof useTypedStream> & {
+  listingId?: string;
+  user_name?: string;
+  threadExists?: boolean | null;
+  isCheckingThread?: boolean;
+};
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
 
 async function sleep(ms = 4000) {
@@ -66,6 +72,21 @@ async function checkGraphStatus(
   }
 }
 
+async function checkThreadExists(
+  apiUrl: string,
+  apiKey: string | null,
+  threadId: string,
+): Promise<boolean> {
+  try {
+    const client = createClient(apiUrl, apiKey ?? undefined);
+    await client.threads.get(threadId);
+    return true;
+  } catch (error) {
+    // Thread doesn't exist or error occurred
+    return false;
+  }
+}
+
 const StreamSession = ({
   children,
   apiKey,
@@ -78,7 +99,41 @@ const StreamSession = ({
   assistantId: string;
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
+  const [listingId] = useQueryState("listingId");
+  const [user_name] = useQueryState("user_name");
   const { getThreads, setThreads } = useThreads();
+  const [threadExists, setThreadExists] = useState<boolean | null>(null);
+  const [isCheckingThread, setIsCheckingThread] = useState(false);
+
+  // Check if thread exists when threadId is provided
+  useEffect(() => {
+    if (threadId && apiUrl) {
+      setIsCheckingThread(true);
+      checkThreadExists(apiUrl, apiKey, threadId)
+        .then((exists) => {
+          setThreadExists(exists);
+          if (!exists) {
+            // Thread doesn't exist - it will be created on first message submit
+            // The useStream hook will handle creation, and we'll pass listingId/user_name in context
+            console.log(
+              `Thread ${threadId} does not exist. Will be created on first message with listingId: ${listingId}, user_name: ${user_name}`,
+            );
+          } else {
+            console.log(`Thread ${threadId} exists. Resuming conversation.`);
+          }
+        })
+        .catch((error) => {
+          console.error("Error checking thread existence:", error);
+          setThreadExists(false);
+        })
+        .finally(() => {
+          setIsCheckingThread(false);
+        });
+    } else {
+      setThreadExists(null);
+    }
+  }, [threadId, apiUrl, apiKey, listingId, user_name]);
+
   const streamValue = useTypedStream({
     apiUrl,
     apiKey: apiKey ?? undefined,
@@ -101,6 +156,15 @@ const StreamSession = ({
     },
   });
 
+  // Expose listingId and user_name through context for use in Thread component
+  const streamValueWithCustomParams = {
+    ...streamValue,
+    listingId: listingId ?? undefined,
+    user_name: user_name ?? undefined,
+    threadExists,
+    isCheckingThread,
+  };
+
   useEffect(() => {
     checkGraphStatus(apiUrl, apiKey).then((ok) => {
       if (!ok) {
@@ -120,7 +184,7 @@ const StreamSession = ({
   }, [apiKey, apiUrl]);
 
   return (
-    <StreamContext.Provider value={streamValue}>
+    <StreamContext.Provider value={streamValueWithCustomParams}>
       {children}
     </StreamContext.Provider>
   );

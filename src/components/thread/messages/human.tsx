@@ -53,10 +53,23 @@ export function HumanMessage({
     setIsEditing(false);
 
     const newMessage: Message = { type: "human", content: value };
+    
+    // Build configurable with listingId and user_name if available
+    const configurable: Record<string, unknown> = {};
+    if ((thread as any).listingId) {
+      configurable.listingId = (thread as any).listingId;
+    }
+    if ((thread as any).user_name) {
+      configurable.user_name = (thread as any).user_name;
+    }
+    
     thread.submit(
       { messages: [newMessage] },
       {
         checkpoint: parentCheckpoint,
+        config: {
+          configurable: Object.keys(configurable).length > 0 ? configurable : undefined,
+        },
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,

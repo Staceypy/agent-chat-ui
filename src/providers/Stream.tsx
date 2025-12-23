@@ -137,7 +137,10 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   const envAssistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID;
 
-  // Use URL params with env var fallbacks
+  // Check if environment variables are set - if so, use them directly and skip form
+  const hasEnvVars = envApiUrl && envAssistantId;
+
+  // Use URL params only if env vars are not set (for manual override)
   const [apiUrl, setApiUrl] = useQueryState("apiUrl", {
     defaultValue: envApiUrl || "",
   });
@@ -156,12 +159,16 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     _setApiKey(key);
   };
 
-  // Determine final values to use, prioritizing URL params then env vars
-  const finalApiUrl = apiUrl || envApiUrl;
-  const finalAssistantId = assistantId || envAssistantId;
+  // Determine final values to use:
+  // 1. If env vars exist, use them (skip form)
+  // 2. Otherwise, use URL params if provided
+  // 3. Otherwise, show form
+  const finalApiUrl = hasEnvVars ? envApiUrl : (apiUrl || envApiUrl);
+  const finalAssistantId = hasEnvVars ? envAssistantId : (assistantId || envAssistantId);
 
-  // Show the form if we: don't have an API URL, or don't have an assistant ID
-  if (!finalApiUrl || !finalAssistantId) {
+  // Show the form ONLY if we don't have env vars AND don't have values from URL params
+  // If env vars are set, always skip the form
+  if (!hasEnvVars && (!finalApiUrl || !finalAssistantId)) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
         <div className="animate-in fade-in-0 zoom-in-95 bg-background flex max-w-3xl flex-col rounded-lg border shadow-lg">
@@ -261,8 +268,8 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   return (
     <StreamSession
       apiKey={apiKey}
-      apiUrl={apiUrl}
-      assistantId={assistantId}
+      apiUrl={finalApiUrl!}
+      assistantId={finalAssistantId!}
     >
       {children}
     </StreamSession>

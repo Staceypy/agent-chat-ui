@@ -6,7 +6,7 @@
  * 
  * This ensures that:
  * - Same listing_id → Same threadId → Same conversation thread
- * - ThreadId is a valid UUID format required by LangGraph
+ * - ThreadId is a valid UUID format
  * - Mapping is deterministic and consistent across sessions
  */
 import { v5 as uuidv5 } from "uuid";

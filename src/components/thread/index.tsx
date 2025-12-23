@@ -276,14 +276,6 @@ export function Thread() {
           {chatStarted && (
             <div className="relative z-10 flex items-center justify-between gap-3 p-2">
               <div className="relative flex items-center justify-start gap-2">
-                <motion.button
-                  className="flex cursor-pointer items-center gap-2"
-                  onClick={() => setThreadId(null)}
-                >
-                  <span className="text-xl font-semibold tracking-tight">
-                    Chat
-                  </span>
-                </motion.button>
               </div>
 
               <div className="flex items-center gap-4">

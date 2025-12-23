@@ -25,6 +25,7 @@ import { getApiKey } from "@/lib/api-key";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
 import { createClient } from "./client";
+import { listingIdToThreadId } from "@/lib/thread-id";
 
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
@@ -104,6 +105,20 @@ const StreamSession = ({
   const { getThreads, setThreads } = useThreads();
   const [threadExists, setThreadExists] = useState<boolean | null>(null);
   const [isCheckingThread, setIsCheckingThread] = useState(false);
+
+  // Generate threadId from listingId if listingId is provided but threadId is not
+  useEffect(() => {
+    if (listingId && !threadId) {
+      const generatedThreadId = listingIdToThreadId(listingId);
+      if (generatedThreadId) {
+        // Update URL with generated threadId
+        setThreadId(generatedThreadId);
+        console.log(
+          `Generated threadId ${generatedThreadId} from listingId ${listingId}`,
+        );
+      }
+    }
+  }, [listingId, threadId, setThreadId]);
 
   // Check if thread exists when threadId is provided
   useEffect(() => {

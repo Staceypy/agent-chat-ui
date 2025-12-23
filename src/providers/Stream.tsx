@@ -130,6 +130,7 @@ const StreamSession = ({
   const { getThreads, setThreads } = useThreads();
   const [threadExists, setThreadExists] = useState<boolean | null>(null);
   const [isCheckingThread, setIsCheckingThread] = useState(false);
+  const [threadReady, setThreadReady] = useState(false);
 
   // Generate threadId from listingId if listingId is provided but threadId is not
   useEffect(() => {
@@ -146,9 +147,11 @@ const StreamSession = ({
   }, [listingId, threadId, setThreadId]);
 
   // Check if thread exists when threadId is provided, and create it if it doesn't
+  // Only mark thread as ready after it exists or is created
   useEffect(() => {
     if (threadId && apiUrl && assistantId) {
       setIsCheckingThread(true);
+      setThreadReady(false); // Reset ready state when threadId changes
       checkThreadExists(apiUrl, apiKey, threadId)
         .then(async (exists) => {
           if (!exists) {
@@ -164,27 +167,32 @@ const StreamSession = ({
             );
             if (created) {
               setThreadExists(true);
+              setThreadReady(true); // Mark as ready after creation
               console.log(
                 `Successfully created thread ${threadId} with listingId: ${listingId}, user_name: ${user_name}`,
               );
             } else {
               setThreadExists(false);
+              setThreadReady(false);
               console.error(`Failed to create thread ${threadId}`);
             }
           } else {
             setThreadExists(true);
+            setThreadReady(true); // Mark as ready if thread exists
             console.log(`Thread ${threadId} exists. Resuming conversation.`);
           }
         })
         .catch((error) => {
           console.error("Error checking/creating thread:", error);
           setThreadExists(false);
+          setThreadReady(false);
         })
         .finally(() => {
           setIsCheckingThread(false);
         });
     } else {
       setThreadExists(null);
+      setThreadReady(!threadId); // Ready if no threadId (will create new thread)
     }
   }, [threadId, apiUrl, apiKey, assistantId, listingId, user_name]);
 
@@ -192,7 +200,9 @@ const StreamSession = ({
     apiUrl,
     apiKey: apiKey ?? undefined,
     assistantId,
-    threadId: threadId ?? null,
+    // Only pass threadId if thread is ready (exists or was just created)
+    // This prevents 404 errors from trying to fetch non-existent threads
+    threadId: threadReady && threadId ? threadId : null,
     fetchStateHistory: true,
     onCustomEvent: (event, options) => {
       if (isUIMessage(event) || isRemoveUIMessage(event)) {

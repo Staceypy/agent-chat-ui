@@ -211,25 +211,29 @@ export function Thread() {
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 
-    // Build context with artifact context, listingId, and user_name
-    const customContext: Record<string, unknown> = {
+    // Build configurable with artifact context, listingId, and user_name
+    const configurable: Record<string, unknown> = {
       ...(Object.keys(artifactContext).length > 0 ? artifactContext : {}),
     };
 
     // Add listingId and user_name if they exist
     if (stream.listingId) {
-      customContext.listingId = stream.listingId;
+      configurable.listingId = stream.listingId;
     }
     if (stream.user_name) {
-      customContext.user_name = stream.user_name;
+      configurable.user_name = stream.user_name;
     }
 
+    // Build context for optimisticValues (keep for backward compatibility)
     const context =
-      Object.keys(customContext).length > 0 ? customContext : undefined;
+      Object.keys(configurable).length > 0 ? configurable : undefined;
 
     stream.submit(
-      { messages: [...toolMessages, newHumanMessage], context },
+      { messages: [...toolMessages, newHumanMessage] },
       {
+        config: {
+          configurable: Object.keys(configurable).length > 0 ? configurable : undefined,
+        },
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
@@ -255,8 +259,21 @@ export function Thread() {
     // Do this so the loading state is correct
     prevMessageLength.current = prevMessageLength.current - 1;
     setFirstTokenReceived(false);
+    
+    // Build configurable with listingId and user_name
+    const configurable: Record<string, unknown> = {};
+    if (stream.listingId) {
+      configurable.listingId = stream.listingId;
+    }
+    if (stream.user_name) {
+      configurable.user_name = stream.user_name;
+    }
+    
     stream.submit(undefined, {
       checkpoint: parentCheckpoint,
+      config: {
+        configurable: Object.keys(configurable).length > 0 ? configurable : undefined,
+      },
       streamMode: ["values"],
       streamSubgraphs: true,
       streamResumable: true,

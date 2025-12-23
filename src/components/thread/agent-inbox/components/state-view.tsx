@@ -31,7 +31,7 @@ const messageTypeToLabel = (message: BaseMessage) => {
     case "human":
       return "User";
     case "ai":
-      return "Assistant";
+      return "Response";
     case "tool":
       return "Tool";
     case "System":

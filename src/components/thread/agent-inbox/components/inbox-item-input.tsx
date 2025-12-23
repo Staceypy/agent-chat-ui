@@ -291,7 +291,7 @@ function RejectActionCard({
           onChange={(event) => onChange(event.target.value, rejectResponse)}
           onKeyDown={handleKeyDown}
           rows={4}
-          placeholder="Share feedback with the agent..."
+          placeholder="Share feedback..."
         />
       </div>
 

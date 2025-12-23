@@ -26,6 +26,7 @@ import { useThreads } from "./Thread";
 import { toast } from "sonner";
 import { createClient } from "./client";
 import { listingIdToThreadId } from "@/lib/thread-id";
+import { validate } from "uuid";
 
 export type StateType = { messages: Message[]; ui?: UIMessage[] };
 
@@ -88,6 +89,30 @@ async function checkThreadExists(
   }
 }
 
+async function createThreadWithId(
+  apiUrl: string,
+  apiKey: string | null,
+  threadId: string,
+  assistantId: string,
+): Promise<boolean> {
+  try {
+    const client = createClient(apiUrl, apiKey ?? undefined);
+    // Determine metadata based on whether assistantId is a UUID or graph name
+    const metadata = validate(assistantId)
+      ? { assistant_id: assistantId }
+      : { graph_id: assistantId };
+    
+    await client.threads.create({
+      threadId,
+      metadata,
+    });
+    return true;
+  } catch (error) {
+    console.error("Error creating thread:", error);
+    return false;
+  }
+}
+
 const StreamSession = ({
   children,
   apiKey,
@@ -120,25 +145,39 @@ const StreamSession = ({
     }
   }, [listingId, threadId, setThreadId]);
 
-  // Check if thread exists when threadId is provided
+  // Check if thread exists when threadId is provided, and create it if it doesn't
   useEffect(() => {
-    if (threadId && apiUrl) {
+    if (threadId && apiUrl && assistantId) {
       setIsCheckingThread(true);
       checkThreadExists(apiUrl, apiKey, threadId)
-        .then((exists) => {
-          setThreadExists(exists);
+        .then(async (exists) => {
           if (!exists) {
-            // Thread doesn't exist - it will be created on first message submit
-            // The useStream hook will handle creation, and we'll pass listingId/user_name in context
+            // Thread doesn't exist - create it with the specific threadId
             console.log(
-              `Thread ${threadId} does not exist. Will be created on first message with listingId: ${listingId}, user_name: ${user_name}`,
+              `Thread ${threadId} does not exist. Creating thread with ID...`,
             );
+            const created = await createThreadWithId(
+              apiUrl,
+              apiKey,
+              threadId,
+              assistantId,
+            );
+            if (created) {
+              setThreadExists(true);
+              console.log(
+                `Successfully created thread ${threadId} with listingId: ${listingId}, user_name: ${user_name}`,
+              );
+            } else {
+              setThreadExists(false);
+              console.error(`Failed to create thread ${threadId}`);
+            }
           } else {
+            setThreadExists(true);
             console.log(`Thread ${threadId} exists. Resuming conversation.`);
           }
         })
         .catch((error) => {
-          console.error("Error checking thread existence:", error);
+          console.error("Error checking/creating thread:", error);
           setThreadExists(false);
         })
         .finally(() => {
@@ -147,7 +186,7 @@ const StreamSession = ({
     } else {
       setThreadExists(null);
     }
-  }, [threadId, apiUrl, apiKey, listingId, user_name]);
+  }, [threadId, apiUrl, apiKey, assistantId, listingId, user_name]);
 
   const streamValue = useTypedStream({
     apiUrl,

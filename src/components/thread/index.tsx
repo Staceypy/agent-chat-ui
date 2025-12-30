@@ -362,7 +362,7 @@ export function Thread() {
                       <div className="flex items-center gap-6 p-2 pt-4">
                         <Button
                           type="submit"
-                          className="ml-auto shadow-md transition-all"
+                          className="ml-auto shadow-md transition-all bg-submit-button"
                           disabled={
                             isLoading ||
                             stream.isLoading ||

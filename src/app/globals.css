@@ -148,4 +148,13 @@
   .shadow-inner-left {
     box-shadow: inset 9px 0 6px -1px rgb(0 0 0 / 0.02);
   }
+
+  .bg-submit-button {
+    background-color: oklch(0.9495 0.1919 118.23);
+    color: oklch(0.145 0 0);
+  }
+
+  .bg-submit-button:hover:not(:disabled) {
+    background-color: oklch(0.9195 0.1919 118.23);
+  }
 }

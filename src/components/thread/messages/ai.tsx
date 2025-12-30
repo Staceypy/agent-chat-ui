@@ -14,6 +14,7 @@ import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
+import { useState, useEffect } from "react";
 
 function CustomComponent({
   message,
@@ -221,12 +222,41 @@ export function AssistantMessage({
 }
 
 export function AssistantMessageLoading() {
+  const [dots, setDots] = useState(".");
+  const [showIndicator, setShowIndicator] = useState(false);
+
+  useEffect(() => {
+    // Delay showing the indicator by random 2-5 seconds
+    const delay = Math.random() * (5000 - 2000) + 2000;
+    const timeout = setTimeout(() => {
+      setShowIndicator(true);
+    }, delay);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (!showIndicator) return;
+
+    const interval = setInterval(() => {
+      setDots((prev) => {
+        if (prev === ".") return "..";
+        if (prev === "..") return "...";
+        return ".";
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [showIndicator]);
+
+  if (!showIndicator) {
+    return null;
+  }
+
   return (
     <div className="mr-auto flex items-start gap-2">
       <div className="bg-muted flex h-8 items-center gap-1 rounded-2xl px-4 py-2">
-        <div className="bg-foreground/50 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_infinite] rounded-full"></div>
-        <div className="bg-foreground/50 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_0.5s_infinite] rounded-full"></div>
-        <div className="bg-foreground/50 h-1.5 w-1.5 animate-[pulse_1.5s_ease-in-out_1s_infinite] rounded-full"></div>
+        <span className="text-sm text-foreground/70">type{dots}</span>
       </div>
     </div>
   );

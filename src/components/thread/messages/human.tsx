@@ -1,6 +1,6 @@
 import { useStreamContext } from "@/providers/Stream";
 import { Message } from "@langchain/langgraph-sdk";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getContentString } from "../utils";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +47,18 @@ export function HumanMessage({
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState("");
+  const [showSeen, setShowSeen] = useState(false);
   const contentString = getContentString(message.content);
+
+  useEffect(() => {
+    // Show "seen" label after random 2-5 seconds
+    const delay = Math.random() * (5000 - 2000) + 2000;
+    const timeout = setTimeout(() => {
+      setShowSeen(true);
+    }, delay);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   const handleSubmitEdit = () => {
     setIsEditing(false);
@@ -115,6 +126,10 @@ export function HumanMessage({
                 {contentString}
               </p>
             ) : null}
+            {/* Show "seen" label after delay */}
+            {showSeen && (
+              <p className="ml-auto text-xs text-muted-foreground">seen</p>
+            )}
           </div>
         )}
 

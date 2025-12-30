@@ -59,12 +59,14 @@ function MessagesRenderer({ messages }: { messages: BaseMessage[] }) {
             {content && <MarkdownText>{content}</MarkdownText>}
             {"tool_calls" in msg && msg.tool_calls ? (
               <div className="flex w-full flex-col items-start gap-1">
-                {(msg.tool_calls as ToolCall[]).map((tc, idx) => (
-                  <ToolCallTable
-                    key={tc.id ?? `tool-call-${idx}`}
-                    toolCall={tc}
-                  />
-                ))}
+                {(msg.tool_calls as ToolCall[])
+                  .filter((tc) => !tc.name?.startsWith("_update_qa_pair"))
+                  .map((tc, idx) => (
+                    <ToolCallTable
+                      key={tc.id ?? `tool-call-${idx}`}
+                      toolCall={tc}
+                    />
+                  ))}
               </div>
             ) : null}
           </div>

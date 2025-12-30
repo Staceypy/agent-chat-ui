@@ -14,9 +14,16 @@ export function ToolCalls({
 }) {
   if (!toolCalls || toolCalls.length === 0) return null;
 
+  // Filter out tool calls that start with _update_qa_pair
+  const filteredToolCalls = toolCalls.filter(
+    (tc) => !tc.name?.startsWith("_update_qa_pair")
+  );
+
+  if (filteredToolCalls.length === 0) return null;
+
   return (
     <div className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2">
-      {toolCalls.map((tc, idx) => {
+      {filteredToolCalls.map((tc, idx) => {
         const args = tc.args as Record<string, any>;
         const hasArgs = Object.keys(args).length > 0;
         return (

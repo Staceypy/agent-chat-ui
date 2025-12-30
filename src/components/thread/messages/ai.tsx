@@ -141,7 +141,11 @@ export function AssistantMessage({
   const hasAnthropicToolCalls = !!anthropicStreamedToolCalls?.length;
   const isToolResult = message?.type === "tool";
 
-  if (isToolResult && hideToolCalls) {
+  // Hide tool results for _update_qa_pair tool calls
+  const isUpdateQAPairToolResult =
+    isToolResult && message?.name?.startsWith("_update_qa_pair");
+
+  if (isToolResult && (hideToolCalls || isUpdateQAPairToolResult)) {
     return null;
   }
 

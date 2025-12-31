@@ -1,7 +1,7 @@
 import { parsePartialJson } from "@langchain/core/output_parsers";
 import { useStreamContext } from "@/providers/Stream";
 import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
-import { getContentString } from "../utils";
+import { getContentString, formatMessageTimestamp } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../markdown-text";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
@@ -125,6 +125,15 @@ export function AssistantMessage({
   const threadInterrupt = thread.interrupt;
 
   const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
+  
+  // Get timestamp from message metadata or use current time
+  const timestamp = message
+    ? ((message as any).timestamp
+        ? new Date((message as any).timestamp)
+        : meta?.firstSeenState?.created_at
+        ? new Date(meta.firstSeenState.created_at)
+        : new Date())
+    : new Date();
   const anthropicStreamedToolCalls = Array.isArray(content)
     ? parseAnthropicStreamedToolCalls(content)
     : undefined;
@@ -190,6 +199,10 @@ export function AssistantMessage({
                 thread={thread}
               />
             )}
+            {/* Show timestamp */}
+            <p className="mr-auto text-xs text-muted-foreground">
+              {formatMessageTimestamp(timestamp)}
+            </p>
             <Interrupt
               interrupt={threadInterrupt}
               isLastMessage={isLastMessage}

@@ -170,7 +170,8 @@ export function Thread() {
         ...(input.trim().length > 0 ? [{ type: "text", text: input }] : []),
         ...contentBlocks,
       ] as Message["content"],
-    };
+      timestamp: new Date().toISOString(),
+    } as Message & { timestamp: string };
 
     const toolMessages = ensureToolCallsHaveResponses(stream.messages);
 

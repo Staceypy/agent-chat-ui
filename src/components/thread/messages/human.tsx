@@ -1,7 +1,7 @@
 import { useStreamContext } from "@/providers/Stream";
 import { Message } from "@langchain/langgraph-sdk";
-import { useState, useEffect } from "react";
-import { getContentString } from "../utils";
+import { useState } from "react";
+import { getContentString, formatMessageTimestamp } from "../utils";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
@@ -47,23 +47,23 @@ export function HumanMessage({
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState("");
-  const [showSeen, setShowSeen] = useState(false);
   const contentString = getContentString(message.content);
-
-  useEffect(() => {
-    // Show "seen" label after random 2-5 seconds
-    const delay = Math.random() * (5000 - 2000) + 2000;
-    const timeout = setTimeout(() => {
-      setShowSeen(true);
-    }, delay);
-
-    return () => clearTimeout(timeout);
-  }, []);
+  
+  // Get timestamp from message metadata or use current time
+  const timestamp = (message as any).timestamp 
+    ? new Date((message as any).timestamp)
+    : meta?.firstSeenState?.created_at 
+    ? new Date(meta.firstSeenState.created_at)
+    : new Date();
 
   const handleSubmitEdit = () => {
     setIsEditing(false);
 
-    const newMessage: Message = { type: "human", content: value };
+    const newMessage: Message = { 
+      type: "human", 
+      content: value,
+      timestamp: new Date().toISOString(),
+    } as Message & { timestamp: string };
     thread.submit(
       { messages: [newMessage] },
       {
@@ -126,10 +126,10 @@ export function HumanMessage({
                 {contentString}
               </p>
             ) : null}
-            {/* Show "seen" label after delay */}
-            {showSeen && (
-              <p className="ml-auto text-xs text-muted-foreground">seen</p>
-            )}
+            {/* Show timestamp */}
+            <p className="ml-auto text-xs text-muted-foreground">
+              {formatMessageTimestamp(timestamp)}
+            </p>
           </div>
         )}
 

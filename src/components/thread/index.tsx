@@ -277,9 +277,27 @@ export function Thread() {
               contentClassName="pt-8 pb-16 max-w-3xl mx-auto flex flex-col gap-4 w-full"
               content={
                 <>
-                  {messages
-                    .filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX))
-                    .map((message, index) =>
+                  {(() => {
+                    // Filter and deduplicate messages
+                    const filtered = messages.filter(
+                      (m) =>
+                        !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX) &&
+                        m.type !== "tool",
+                    );
+                    
+                    // Deduplicate by keeping the last occurrence of each message ID
+                    const seen = new Set<string>();
+                    const deduplicated: Message[] = [];
+                    for (let i = filtered.length - 1; i >= 0; i--) {
+                      const msg = filtered[i];
+                      const key = msg.id || `${msg.type}-${i}`;
+                      if (!seen.has(key)) {
+                        seen.add(key);
+                        deduplicated.unshift(msg);
+                      }
+                    }
+                    
+                    return deduplicated.map((message, index) =>
                       message.type === "human" ? (
                         <HumanMessage
                           key={message.id || `${message.type}-${index}`}
@@ -294,7 +312,8 @@ export function Thread() {
                           handleRegenerate={handleRegenerate}
                         />
                       ),
-                    )}
+                    );
+                  })()}
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt.
                     We need to render it outside of the messages list, since there are no messages to render */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (

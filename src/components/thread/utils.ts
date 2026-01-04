@@ -16,21 +16,12 @@ export function getContentString(content: Message["content"]): string {
 }
 
 /**
- * Formats a timestamp for display in chat messages.
- * - Shows time only if today (e.g., "2:30 PM")
- * - Shows "Yesterday" + time if yesterday (e.g., "Yesterday 2:30 PM")
- * - Shows date + time if older (e.g., "Jan 15, 2:30 PM")
+ * Formats a timestamp for display in chat messages in [HH:MM:SS] format.
  */
 export function formatMessageTimestamp(timestamp: Date | string | number): string {
   const date = typeof timestamp === "string" || typeof timestamp === "number"
     ? new Date(timestamp)
     : timestamp;
 
-  if (isToday(date)) {
-    return format(date, "h:mm a");
-  } else if (isYesterday(date)) {
-    return `Yesterday ${format(date, "h:mm a")}`;
-  } else {
-    return format(date, "MMM d, h:mm a");
-  }
+  return format(date, "[HH:mm:ss]");
 }

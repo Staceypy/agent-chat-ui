@@ -5,8 +5,6 @@ import { getContentString, formatMessageTimestamp } from "../utils";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
-import { MultimodalPreview } from "@/components/thread/MultimodalPreview";
-import { isBase64ContentBlock } from "@/lib/multimodal-utils";
 
 function EditableContent({
   value,
@@ -48,7 +46,7 @@ export function HumanMessage({
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState("");
   const contentString = getContentString(message.content);
-  
+
   // Get timestamp from message metadata or use current time
   const timestamp = (message as any).timestamp 
     ? new Date((message as any).timestamp)
@@ -85,59 +83,36 @@ export function HumanMessage({
   };
 
   return (
-    <div
-      className={cn(
-        "group ml-auto flex items-center gap-2",
-        isEditing && "w-full max-w-xl",
-      )}
-    >
-      <div className={cn("flex flex-col gap-2", isEditing && "w-full")}>
-        {isEditing ? (
-          <EditableContent
-            value={value}
-            setValue={setValue}
-            onSubmit={handleSubmitEdit}
-          />
-        ) : (
-          <div className="flex flex-col gap-2">
-            {/* Render images and files if no text */}
-            {Array.isArray(message.content) && message.content.length > 0 && (
-              <div className="flex flex-wrap items-end justify-end gap-2">
-                {message.content.reduce<React.ReactNode[]>(
-                  (acc, block, idx) => {
-                    if (isBase64ContentBlock(block)) {
-                      acc.push(
-                        <MultimodalPreview
-                          key={idx}
-                          block={block}
-                          size="md"
-                        />,
-                      );
-                    }
-                    return acc;
-                  },
-                  [],
-                )}
-              </div>
-            )}
-            {/* Render text if present, otherwise fallback to file/image name */}
+    <div className={cn("group flex w-full items-start gap-2", isEditing && "flex-col")}>
+      {isEditing ? (
+        <EditableContent
+          value={value}
+          setValue={setValue}
+          onSubmit={handleSubmitEdit}
+        />
+      ) : (
+        <div className="flex w-full items-start gap-2">
+          {/* Timestamp on the left */}
+          <span className="text-muted-foreground text-sm font-mono shrink-0">
+            {formatMessageTimestamp(timestamp)}
+          </span>
+          
+          {/* User label and message */}
+          <div className="flex-1">
             {contentString ? (
-              <p className="bg-muted ml-auto w-fit rounded-3xl px-4 py-2 text-right whitespace-pre-wrap">
-                {contentString}
+              <p className="text-orange-500 whitespace-pre-wrap">
+                <span className="font-medium">User:</span> {contentString}
               </p>
             ) : null}
-            {/* Show timestamp */}
-            <p className="ml-auto text-xs text-muted-foreground">
-              {formatMessageTimestamp(timestamp)}
-            </p>
           </div>
-        )}
+        </div>
+      )}
 
+      {!isEditing && (
         <div
           className={cn(
-            "ml-auto flex items-center gap-2 transition-opacity",
+            "flex items-center gap-2 transition-opacity",
             "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100",
-            isEditing && "opacity-100",
           )}
         >
           <BranchSwitcher
@@ -160,7 +135,7 @@ export function HumanMessage({
             isHumanMessage={true}
           />
         </div>
-      </div>
+      )}
     </div>
   );
 }

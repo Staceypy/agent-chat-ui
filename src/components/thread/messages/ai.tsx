@@ -117,18 +117,15 @@ export function AssistantMessage({
   return (
     <div className="group flex w-full items-start gap-2">
       <div className="flex w-full flex-col gap-2">
-        <div className="flex w-full items-start gap-2">
-          {/* Timestamp on the left */}
-          <span className="text-muted-foreground text-sm font-mono shrink-0">
+        {/* AI message content in white */}
+        <div className="flex-1 text-white">
+          <div className="py-1">
+            <MarkdownText>{contentString}</MarkdownText>
+          </div>
+          {/* Timestamp under the text */}
+          <span className="text-muted-foreground text-sm font-mono">
             {formatMessageTimestamp(timestamp)}
           </span>
-          
-          {/* AI message content in white */}
-          <div className="flex-1 text-white">
-            <div className="py-1">
-              <MarkdownText>{contentString}</MarkdownText>
-            </div>
-          </div>
         </div>
 
         {message && (

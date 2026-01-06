@@ -1,6 +1,6 @@
 import { useStreamContext } from "@/providers/Stream";
 import { Message } from "@langchain/langgraph-sdk";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getContentString, formatMessageTimestamp } from "../utils";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +45,7 @@ export function HumanMessage({
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState("");
+  const [showSeen, setShowSeen] = useState(false);
   const contentString = getContentString(message.content);
 
   // Get timestamp from message metadata or use current time
@@ -53,6 +54,27 @@ export function HumanMessage({
     : meta?.firstSeenState?.created_at 
     ? new Date(meta.firstSeenState.created_at)
     : new Date();
+
+  // Determine if message is new (sent within last 5 seconds) or old
+  const isNewMessage = (() => {
+    const now = new Date();
+    const timeDiff = now.getTime() - timestamp.getTime();
+    return timeDiff < 5000; // Less than 5 seconds old
+  })();
+
+  useEffect(() => {
+    if (isNewMessage) {
+      // For new messages, show "seen" after random 2-5 seconds
+      const delay = Math.random() * (5000 - 2000) + 2000;
+      const timeout = setTimeout(() => {
+        setShowSeen(true);
+      }, delay);
+      return () => clearTimeout(timeout);
+    } else {
+      // For old messages, show "seen" immediately
+      setShowSeen(true);
+    }
+  }, [isNewMessage]);
 
   const handleSubmitEdit = () => {
     setIsEditing(false);
@@ -91,19 +113,23 @@ export function HumanMessage({
           onSubmit={handleSubmitEdit}
         />
       ) : (
-        <div className="flex w-full items-start gap-2">
-          {/* Timestamp on the left */}
-          <span className="text-muted-foreground text-sm font-mono shrink-0">
-            {formatMessageTimestamp(timestamp)}
-          </span>
-          
+        <div className="flex w-full flex-col gap-1">
           {/* User label and message */}
           <div className="flex-1">
             {contentString ? (
               <p className="text-orange-500 whitespace-pre-wrap">
-                <span className="font-medium">User:</span> {contentString}
+                <span className="font-medium">You:</span> {contentString}
               </p>
             ) : null}
+          </div>
+          {/* Timestamp under the text */}
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm font-mono">
+              {formatMessageTimestamp(timestamp)}
+            </span>
+            {showSeen && (
+              <span className="text-muted-foreground text-sm">seen</span>
+            )}
           </div>
         </div>
       )}

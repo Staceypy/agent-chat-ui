@@ -10,7 +10,9 @@ import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
 import { ThreadView } from "../agent-inbox";
 import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { QAPairsDisplay } from "./qa-pairs-display";
+import { parseQAPairsFromContent } from "./qa-pairs-utils";
 
 function CustomComponent({
   message,
@@ -103,6 +105,11 @@ export function AssistantMessage({
         : new Date())
     : new Date();
 
+  // Check if this is a Q&A pairs message
+  const qaParsed = useMemo(() => {
+    return parseQAPairsFromContent(contentString);
+  }, [contentString]);
+
   // Hide tool results completely
   const isToolResult = message?.type === "tool";
   if (isToolResult) {
@@ -117,10 +124,17 @@ export function AssistantMessage({
   return (
     <div className="group flex w-full items-start gap-2">
       <div className="flex w-full flex-col gap-2">
-        {/* AI message content in white */}
+        {/* AI message content */}
         <div className="flex-1 text-white">
           <div className="py-1">
-            <MarkdownText>{contentString}</MarkdownText>
+            {qaParsed ? (
+              <QAPairsDisplay
+                qaPairs={qaParsed.qaPairs}
+                opposingParty={qaParsed.opposingParty}
+              />
+            ) : (
+              <MarkdownText>{contentString}</MarkdownText>
+            )}
           </div>
           {/* Timestamp under the text */}
           <span className="text-muted-foreground text-sm font-mono">

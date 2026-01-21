@@ -48,12 +48,6 @@ export function HumanMessage({
   const [showSeen, setShowSeen] = useState(false);
   const contentString = getContentString(message.content);
 
-  // Hide empty, whitespace-only, or "null" messages
-  const trimmedContent = contentString.trim().toLowerCase();
-  if (!trimmedContent || trimmedContent === "null") {
-    return null;
-  }
-
   // Get timestamp from message metadata or use current time
   const timestamp = (message as any).timestamp 
     ? new Date((message as any).timestamp)
@@ -81,6 +75,12 @@ export function HumanMessage({
       setShowSeen(true);
     }
   }, [isNewMessage]);
+
+  // Hide empty, whitespace-only, or "null" messages (must be after all hooks)
+  const trimmedContent = contentString.trim().toLowerCase();
+  if (!trimmedContent || trimmedContent === "null") {
+    return null;
+  }
 
   const handleSubmitEdit = () => {
     setIsEditing(false);

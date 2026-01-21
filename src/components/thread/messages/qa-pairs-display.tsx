@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, CheckCircle2, MessageSquare, Clock } from "lucide-react";
-import type { QAPair } from "./qa-pairs-utils";
+import type { QAPair, QAMode } from "./qa-pairs-utils";
 
 interface QAPairsDisplayProps {
   qaPairs: QAPair[];
   opposingParty: string; // "buyer" or "seller"
-  mode?: "full" | "teaser"; // "full" shows Q&A, "teaser" shows only questions
+  mode?: QAMode; // "full" shows Q&A, "teaser" shows only questions
 }
 
 export function QAPairsDisplay({ qaPairs, opposingParty, mode = "full" }: QAPairsDisplayProps) {

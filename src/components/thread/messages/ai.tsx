@@ -11,7 +11,6 @@ import { ThreadView } from "../agent-inbox";
 import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
 import { useState, useEffect, useMemo } from "react";
-import { QAPairsDisplay } from "./qa-pairs-display";
 import { parseQAPairsFromContent } from "./qa-pairs-utils";
 
 function CustomComponent({
@@ -105,9 +104,11 @@ export function AssistantMessage({
         : new Date())
     : new Date();
 
-  // Check if this is a Q&A pairs message
-  const qaParsed = useMemo(() => {
-    return parseQAPairsFromContent(contentString);
+  // Check if this is a "full" Q&A pairs message (rendered in header, not in chat flow)
+  // Teaser messages should still be shown in the chat
+  const isFullQAPairsMessage = useMemo(() => {
+    const parsed = parseQAPairsFromContent(contentString);
+    return parsed !== null && parsed.mode === "full";
   }, [contentString]);
 
   // Hide tool results completely
@@ -116,8 +117,15 @@ export function AssistantMessage({
     return null;
   }
 
-  // Only show AI messages with content
-  if (!message || contentString.length === 0) {
+  // Hide empty, whitespace-only, or "null" messages
+  const trimmedContent = contentString.trim().toLowerCase();
+  if (!message || !trimmedContent || trimmedContent === "null") {
+    return null;
+  }
+
+  // Full QA pairs messages are rendered in the header button, not in chat flow
+  // Teaser messages are still shown in the chat
+  if (isFullQAPairsMessage) {
     return null;
   }
 
@@ -127,14 +135,7 @@ export function AssistantMessage({
         {/* AI message content */}
         <div className="flex-1 text-white">
           <div className="py-1">
-            {qaParsed ? (
-              <QAPairsDisplay
-                qaPairs={qaParsed.qaPairs}
-                opposingParty={qaParsed.opposingParty}
-              />
-            ) : (
-              <MarkdownText>{contentString}</MarkdownText>
-            )}
+            <MarkdownText>{contentString}</MarkdownText>
           </div>
           {/* Timestamp under the text */}
           <span className="text-muted-foreground text-sm font-mono">

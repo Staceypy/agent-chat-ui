@@ -207,17 +207,17 @@ export function Thread() {
 
   // Detect QA pairs from messages to show in the sticky header
   const qaPairsData = useMemo(() => {
-    for (const message of messages) {
-      if (message.type === "ai") {
-        const content = message.content ?? [];
-        const contentString = getContentString(content);
-        const opposingPartyHint =
-          typeof (message as any).name === "string" ? (message as any).name : undefined;
-        const parsed = parseQAPairsFromContent(contentString, { opposingPartyHint });
-        if (parsed) {
-          return parsed;
-        }
-      }
+    // Prefer the most recent Q&A message so teaser can be replaced by full answers later.
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (message.type !== "ai") continue;
+
+      const content = message.content ?? [];
+      const contentString = getContentString(content);
+      const opposingPartyHint =
+        typeof (message as any).name === "string" ? (message as any).name : undefined;
+      const parsed = parseQAPairsFromContent(contentString, { opposingPartyHint });
+      if (parsed) return parsed;
     }
     return null;
   }, [messages]);

@@ -228,7 +228,9 @@ export function Thread() {
       if (message.type === "ai") {
         const content = message.content ?? [];
         const contentString = getContentString(content);
-        const parsed = parseQAPairsFromContent(contentString);
+        const opposingPartyHint =
+          typeof (message as any).name === "string" ? (message as any).name : undefined;
+        const parsed = parseQAPairsFromContent(contentString, { opposingPartyHint });
         if (parsed) {
           return parsed;
         }

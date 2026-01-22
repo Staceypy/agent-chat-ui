@@ -4,6 +4,17 @@ export interface QAPair {
 }
 
 export type QAMode = "full" | "teaser";
+export type OpposingParty = "buyer" | "seller";
+
+function normalizeOpposingParty(
+  value: unknown,
+): OpposingParty | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim().toLowerCase();
+  if (v === "buyer") return "buyer";
+  if (v === "seller") return "seller";
+  return null;
+}
 
 /**
  * Parse Q&A pairs from message content.
@@ -18,9 +29,12 @@ export type QAMode = "full" | "teaser";
  * followed by numbered questions only (no answers):
  * **1. Question?**
  */
-export function parseQAPairsFromContent(content: string): {
+export function parseQAPairsFromContent(
+  content: string,
+  opts?: { opposingPartyHint?: unknown },
+): {
   qaPairs: QAPair[];
-  opposingParty: string;
+  opposingParty: OpposingParty;
   mode: QAMode;
 } | null {
   // Check for FULL mode: "here are X vetting answers from..."
@@ -29,7 +43,11 @@ export function parseQAPairsFromContent(content: string): {
   );
   
   if (fullHeaderMatch) {
-    const opposingParty = fullHeaderMatch[2];
+    const capturedParty = fullHeaderMatch[2]?.toLowerCase();
+    const opposingParty =
+      capturedParty === "buyer" || capturedParty === "seller"
+        ? (capturedParty as OpposingParty)
+        : normalizeOpposingParty(opts?.opposingPartyHint) ?? "buyer";
     const qaPairs: QAPair[] = [];
 
     // Parse individual Q&A pairs with answers
@@ -56,7 +74,11 @@ export function parseQAPairsFromContent(content: string): {
   );
 
   if (teaserHeaderMatch) {
-    const opposingParty = teaserHeaderMatch[1];
+    const capturedParty = teaserHeaderMatch[1]?.toLowerCase();
+    const opposingParty =
+      capturedParty === "buyer" || capturedParty === "seller"
+        ? (capturedParty as OpposingParty)
+        : normalizeOpposingParty(opts?.opposingPartyHint) ?? "buyer";
     const qaPairs: QAPair[] = [];
 
     // Parse questions only (no answers)

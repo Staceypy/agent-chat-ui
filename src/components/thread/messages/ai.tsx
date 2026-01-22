@@ -104,11 +104,10 @@ export function AssistantMessage({
         : new Date())
     : new Date();
 
-  // Check if this is a "full" Q&A pairs message (rendered in header, not in chat flow)
-  // Teaser messages should still be shown in the chat
-  const isFullQAPairsMessage = useMemo(() => {
+  // Q&A pairs messages are rendered in the sticky header button, not in the chat flow
+  const isQAPairsMessage = useMemo(() => {
     const parsed = parseQAPairsFromContent(contentString);
-    return parsed !== null && parsed.mode === "full";
+    return parsed !== null;
   }, [contentString]);
 
   // Hide tool results completely
@@ -123,9 +122,8 @@ export function AssistantMessage({
     return null;
   }
 
-  // Full QA pairs messages are rendered in the header button, not in chat flow
-  // Teaser messages are still shown in the chat
-  if (isFullQAPairsMessage) {
+  // Hide Q&A pairs messages in the chat flow (both full + teaser)
+  if (isQAPairsMessage) {
     return null;
   }
 

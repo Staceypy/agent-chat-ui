@@ -12,22 +12,14 @@ import {
   DO_NOT_RENDER_ID_PREFIX,
   ensureToolCallsHaveResponses,
 } from "@/lib/ensure-tool-responses";
-import { TooltipIconButton } from "./tooltip-icon-button";
 import {
   ArrowDown,
-  LoaderCircle,
   XIcon,
 } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
 import {
@@ -86,15 +78,14 @@ function OpenGitHubRepo() {
 }
 
 export function Thread() {
-  const [artifactContext, setArtifactContext] = useArtifactContext();
+  const [artifactContext, _setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
-  const [threadId, _setThreadId] = useQueryState("threadId");
+  const [threadId] = useQueryState("threadId");
   const [input, setInput] = useState("");
   const {
     contentBlocks,
     setContentBlocks,
-    handleFileUpload,
     dropRef,
     removeBlock,
     resetBlocks: _resetBlocks,
@@ -109,14 +100,6 @@ export function Thread() {
   const isLoading = stream.isLoading;
 
   const lastError = useRef<string | undefined>(undefined);
-
-  const setThreadId = (id: string | null) => {
-    _setThreadId(id);
-
-    // close artifact and reset artifact context
-    closeArtifact();
-    setArtifactContext({});
-  };
 
   useEffect(() => {
     if (!stream.error) {

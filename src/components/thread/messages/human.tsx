@@ -76,6 +76,12 @@ export function HumanMessage({
     }
   }, [isNewMessage]);
 
+  // Hide empty, whitespace-only, or "null" messages (must be after all hooks)
+  const trimmedContent = contentString.trim().toLowerCase();
+  if (!trimmedContent || trimmedContent === "null") {
+    return null;
+  }
+
   const handleSubmitEdit = () => {
     setIsEditing(false);
 

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
@@ -12,22 +12,14 @@ import {
   DO_NOT_RENDER_ID_PREFIX,
   ensureToolCallsHaveResponses,
 } from "@/lib/ensure-tool-responses";
-import { TooltipIconButton } from "./tooltip-icon-button";
 import {
   ArrowDown,
-  LoaderCircle,
   XIcon,
 } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
 import {
@@ -36,6 +28,9 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
+import { QAPairsFloatingButton } from "./messages/qa-pairs-floating";
+import { parseQAPairsFromContent } from "./messages/qa-pairs-utils";
+import { getContentString } from "./utils";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -83,15 +78,14 @@ function OpenGitHubRepo() {
 }
 
 export function Thread() {
-  const [artifactContext, setArtifactContext] = useArtifactContext();
+  const [artifactContext, _setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
 
-  const [threadId, _setThreadId] = useQueryState("threadId");
+  const [threadId] = useQueryState("threadId");
   const [input, setInput] = useState("");
   const {
     contentBlocks,
     setContentBlocks,
-    handleFileUpload,
     dropRef,
     removeBlock,
     resetBlocks: _resetBlocks,
@@ -106,14 +100,6 @@ export function Thread() {
   const isLoading = stream.isLoading;
 
   const lastError = useRef<string | undefined>(undefined);
-
-  const setThreadId = (id: string | null) => {
-    _setThreadId(id);
-
-    // close artifact and reset artifact context
-    closeArtifact();
-    setArtifactContext({});
-  };
 
   useEffect(() => {
     if (!stream.error) {
@@ -219,6 +205,23 @@ export function Thread() {
     (m) => m.type === "ai" || m.type === "tool",
   );
 
+  // Detect QA pairs from messages to show in the sticky header
+  const qaPairsData = useMemo(() => {
+    // Prefer the most recent Q&A message so teaser can be replaced by full answers later.
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (message.type !== "ai") continue;
+
+      const content = message.content ?? [];
+      const contentString = getContentString(content);
+      const opposingPartyHint =
+        typeof (message as any).name === "string" ? (message as any).name : undefined;
+      const parsed = parseQAPairsFromContent(contentString, { opposingPartyHint });
+      if (parsed) return parsed;
+    }
+    return null;
+  }, [messages]);
+
   return (
     <div className="flex h-screen w-full overflow-hidden">
 
@@ -245,23 +248,36 @@ export function Thread() {
             </div>
           )}
           {chatStarted && (
-            <div className="relative z-10 flex items-center justify-between gap-3 p-2">
-              <div className="relative flex items-center justify-start gap-2">
-                {/* <motion.button
-                  className="flex cursor-pointer items-center gap-2"
-                  onClick={() => setThreadId(null)}
-                >
-                  <span className="text-xl font-semibold tracking-tight">
-                    Chat
-                  </span>
-                </motion.button> */}
-              </div>
+            <div className="relative z-10 flex flex-col gap-2 p-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="relative flex items-center justify-start gap-2">
+                  {/* <motion.button
+                    className="flex cursor-pointer items-center gap-2"
+                    onClick={() => setThreadId(null)}
+                  >
+                    <span className="text-xl font-semibold tracking-tight">
+                      Chat
+                    </span>
+                  </motion.button> */}
+                </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center">
-                  <OpenGitHubRepo />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center">
+                    <OpenGitHubRepo />
+                  </div>
                 </div>
               </div>
+
+              {/* QA Pairs Floating Button - appears when QA message is received */}
+              {qaPairsData && (
+                <div className="flex justify-center">
+                  <QAPairsFloatingButton
+                    qaPairs={qaPairsData.qaPairs}
+                    opposingParty={qaPairsData.opposingParty}
+                    mode={qaPairsData.mode}
+                  />
+                </div>
+              )}
 
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
             </div>

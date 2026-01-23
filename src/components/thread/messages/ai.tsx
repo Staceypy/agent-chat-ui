@@ -10,7 +10,8 @@ import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
 import { ThreadView } from "../agent-inbox";
 import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { parseQAPairsFromContent } from "./qa-pairs-utils";
 
 function CustomComponent({
   message,
@@ -103,21 +104,33 @@ export function AssistantMessage({
         : new Date())
     : new Date();
 
+  // Q&A pairs messages are rendered in the sticky header button, not in the chat flow
+  const isQAPairsMessage = useMemo(() => {
+    const parsed = parseQAPairsFromContent(contentString);
+    return parsed !== null;
+  }, [contentString]);
+
   // Hide tool results completely
   const isToolResult = message?.type === "tool";
   if (isToolResult) {
     return null;
   }
 
-  // Only show AI messages with content
-  if (!message || contentString.length === 0) {
+  // Hide empty, whitespace-only, or "null" messages
+  const trimmedContent = contentString.trim().toLowerCase();
+  if (!message || !trimmedContent || trimmedContent === "null") {
+    return null;
+  }
+
+  // Hide Q&A pairs messages in the chat flow (both full + teaser)
+  if (isQAPairsMessage) {
     return null;
   }
 
   return (
     <div className="group flex w-full items-start gap-2">
       <div className="flex w-full flex-col gap-2">
-        {/* AI message content in white */}
+        {/* AI message content */}
         <div className="flex-1 text-white">
           <div className="py-1">
             <MarkdownText>{contentString}</MarkdownText>

@@ -4,6 +4,8 @@ import React, {
   ReactNode,
   useState,
   useEffect,
+  useCallback,
+  useRef,
 } from "react";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { type Message } from "@langchain/langgraph-sdk";
@@ -38,7 +40,9 @@ const useTypedStream = useStream<
   }
 >;
 
-type StreamContextType = ReturnType<typeof useTypedStream>;
+type StreamContextType = ReturnType<typeof useTypedStream> & {
+  refreshHistory: () => Promise<void>;
+};
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
 
 async function sleep(ms = 4000) {
@@ -78,6 +82,11 @@ const StreamSession = ({
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { getThreads, setThreads } = useThreads();
+  
+  // Separate state for polled messages - this ensures we always have the latest
+  const [polledMessages, setPolledMessages] = useState<Message[] | null>(null);
+  const lastPollRef = useRef<string>("");
+  
   const streamValue = useTypedStream({
     apiUrl,
     apiKey: apiKey ?? undefined,
@@ -94,11 +103,83 @@ const StreamSession = ({
     },
     onThreadId: (id) => {
       setThreadId(id);
+      // Reset polled messages when thread changes
+      setPolledMessages(null);
+      lastPollRef.current = "";
       // Refetch threads list when thread ID changes.
       // Wait for some seconds before fetching so we're able to get the new thread that was created.
       sleep().then(() => getThreads().then(setThreads).catch(console.error));
     },
   });
+
+  // Function to manually refresh history from the server
+  const refreshHistory = useCallback(async () => {
+    if (!threadId) return;
+    
+    try {
+      const response = await fetch(`${apiUrl}/threads/${threadId}/history`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey && { "X-Api-Key": apiKey }),
+        },
+        body: JSON.stringify({ limit: 100 }),
+      });
+      
+      if (!response.ok) return;
+      
+      const history = await response.json();
+      
+      // Extract messages from the most recent checkpoint
+      if (history && Array.isArray(history) && history.length > 0) {
+        const latestState = history[0];
+        const newMessages = latestState?.values?.messages;
+        
+        if (Array.isArray(newMessages) && newMessages.length > 0) {
+          // Create a hash of the new messages to detect changes
+          const newHash = JSON.stringify(newMessages.map((m: Message) => ({
+            id: m.id,
+            content: m.content,
+          })));
+          
+          // Only update if messages actually changed
+          if (newHash !== lastPollRef.current) {
+            lastPollRef.current = newHash;
+            setPolledMessages(newMessages);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to refresh history:", error);
+    }
+  }, [threadId, apiUrl, apiKey]);
+
+  // Poll for updates every 3 seconds when not actively streaming
+  useEffect(() => {
+    if (!threadId) return;
+    
+    // Initial fetch after a short delay
+    const initialTimeout = setTimeout(refreshHistory, 500);
+    
+    // Set up polling interval - poll more frequently (every 2 seconds)
+    const pollInterval = setInterval(() => {
+      // Only poll when not actively streaming
+      if (!streamValue.isLoading) {
+        refreshHistory();
+      }
+    }, 2000);
+    
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(pollInterval);
+    };
+  }, [threadId, streamValue.isLoading, refreshHistory]);
+
+  // Clear polled messages when thread changes
+  useEffect(() => {
+    setPolledMessages(null);
+    lastPollRef.current = "";
+  }, [threadId]);
 
   useEffect(() => {
     checkGraphStatus(apiUrl, apiKey).then((ok) => {
@@ -118,8 +199,42 @@ const StreamSession = ({
     });
   }, [apiKey, apiUrl]);
 
+  // Use polled messages if they have more/newer data than stream messages
+  const effectiveMessages = (() => {
+    const streamMessages = streamValue.messages ?? [];
+    const polled = polledMessages ?? [];
+    
+    // If we're streaming, prefer stream messages
+    if (streamValue.isLoading) {
+      return streamMessages;
+    }
+    
+    // If polled has more messages, use polled
+    if (polled.length > streamMessages.length) {
+      return polled;
+    }
+    
+    // If same count, compare content of last message
+    if (polled.length === streamMessages.length && polled.length > 0) {
+      const streamLast = JSON.stringify(streamMessages[streamMessages.length - 1]?.content);
+      const polledLast = JSON.stringify(polled[polled.length - 1]?.content);
+      if (polledLast !== streamLast) {
+        return polled;
+      }
+    }
+    
+    return streamMessages;
+  })();
+
+  // Extend streamValue with refreshHistory function and effective messages
+  const extendedStreamValue: StreamContextType = {
+    ...streamValue,
+    messages: effectiveMessages,
+    refreshHistory,
+  };
+
   return (
-    <StreamContext.Provider value={streamValue}>
+    <StreamContext.Provider value={extendedStreamValue}>
       {children}
     </StreamContext.Provider>
   );

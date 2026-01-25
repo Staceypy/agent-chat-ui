@@ -205,6 +205,17 @@ export function Thread() {
     (m) => m.type === "ai" || m.type === "tool",
   );
 
+  // Create a content hash to track when message content changes (for streaming updates)
+  const messagesContentHash = useMemo(() => {
+    return messages
+      .filter((m) => m.type === "ai")
+      .map((m) => {
+        const content = m.content ?? [];
+        return getContentString(content);
+      })
+      .join("|||");
+  }, [messages]);
+
   // Detect QA pairs from messages to show in the sticky header
   const qaPairsData = useMemo(() => {
     // Prefer the most recent Q&A message so teaser can be replaced by full answers later.
@@ -220,7 +231,7 @@ export function Thread() {
       if (parsed) return parsed;
     }
     return null;
-  }, [messages]);
+  }, [messages, messagesContentHash]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden">

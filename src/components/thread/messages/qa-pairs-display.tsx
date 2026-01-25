@@ -176,11 +176,11 @@ export function QAPairsDisplay({ qaPairs, opposingParty, mode = "full" }: QAPair
               {/* Answer Content */}
               <div
                 className={cn(
-                  "overflow-hidden transition-all duration-200",
-                  isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  "grid transition-all duration-300 ease-in-out",
+                  isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                 )}
               >
-                <div className="px-3 pb-3 pt-0">
+                <div className="overflow-hidden px-3 pb-3 pt-0">
                   <div className="flex items-start gap-2 pl-9">
                     <MessageSquare className="w-3 h-3 mt-1 text-emerald-400 flex-shrink-0" />
                     <p className="text-sm text-emerald-300/90 leading-relaxed">

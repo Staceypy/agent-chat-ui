@@ -29,7 +29,7 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { QAPairsFloatingButton } from "./messages/qa-pairs-floating";
-import { parseQAPairsFromContent } from "./messages/qa-pairs-utils";
+import { parseQAPairsFromContent, deduplicateQAPairs } from "./messages/qa-pairs-utils";
 import { getContentString } from "./utils";
 
 function StickyToBottomContent(props: {
@@ -228,7 +228,13 @@ export function Thread() {
       const opposingPartyHint =
         typeof (message as any).name === "string" ? (message as any).name : undefined;
       const parsed = parseQAPairsFromContent(contentString, { opposingPartyHint });
-      if (parsed) return parsed;
+      if (parsed) {
+        // Deduplicate QA pairs, keeping the last occurrence of each question
+        return {
+          ...parsed,
+          qaPairs: deduplicateQAPairs(parsed.qaPairs),
+        };
+      }
     }
     return null;
   }, [messages, messagesContentHash]);

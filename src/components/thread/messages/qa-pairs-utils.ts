@@ -6,6 +6,40 @@ export interface QAPair {
 export type QAMode = "full" | "teaser";
 export type OpposingParty = "buyer" | "seller";
 
+/**
+ * Deduplicates QA pairs by question text, keeping the last occurrence of each question.
+ * Questions are compared case-insensitively and with trimmed whitespace.
+ * Maintains the original order but removes earlier duplicates.
+ * 
+ * Example: [A, B, A, C] -> [B, A (last), C]
+ */
+export function deduplicateQAPairs(qaPairs: QAPair[]): QAPair[] {
+  if (qaPairs.length === 0) return qaPairs;
+  
+  // Map to track the last occurrence index of each question
+  const lastOccurrenceIndex = new Map<string, number>();
+  
+  // First pass: find the last occurrence index of each question
+  for (let i = 0; i < qaPairs.length; i++) {
+    const normalizedQuestion = qaPairs[i].question.trim().toLowerCase();
+    lastOccurrenceIndex.set(normalizedQuestion, i);
+  }
+  
+  // Second pass: build result array, only including questions at their last occurrence
+  const result: QAPair[] = [];
+  for (let i = 0; i < qaPairs.length; i++) {
+    const normalizedQuestion = qaPairs[i].question.trim().toLowerCase();
+    const lastIndex = lastOccurrenceIndex.get(normalizedQuestion);
+    
+    // Only include this pair if it's the last occurrence of this question
+    if (lastIndex === i) {
+      result.push(qaPairs[i]);
+    }
+  }
+  
+  return result;
+}
+
 function normalizeOpposingParty(
   value: unknown,
 ): OpposingParty | null {

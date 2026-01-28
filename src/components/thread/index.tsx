@@ -221,7 +221,8 @@ export function Thread() {
     // Prefer the most recent Q&A message so teaser can be replaced by full answers later.
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
-      if (message.type !== "ai") continue;
+      // Allow both AI and Human messages to emit Q&A vetting blocks
+      if (message.type !== "ai" && message.type !== "human") continue;
 
       const content = message.content ?? [];
       const contentString = getContentString(content);

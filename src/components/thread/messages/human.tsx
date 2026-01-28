@@ -1,10 +1,11 @@
 import { useStreamContext } from "@/providers/Stream";
 import { Message } from "@langchain/langgraph-sdk";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getContentString, formatMessageTimestamp } from "../utils";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { BranchSwitcher, CommandBar } from "./shared";
+import { parseQAPairsFromContent } from "./qa-pairs-utils";
 
 function EditableContent({
   value,
@@ -48,6 +49,12 @@ export function HumanMessage({
   const [showSeen, setShowSeen] = useState(false);
   const contentString = getContentString(message.content);
 
+  // Detect Q&A vetting blocks (same behavior as AI messages)
+  const isQAPairsMessage = useMemo(() => {
+    const parsed = parseQAPairsFromContent(contentString);
+    return parsed !== null;
+  }, [contentString]);
+
   // Get timestamp from message metadata or use current time
   const timestamp = (message as any).timestamp 
     ? new Date((message as any).timestamp)
@@ -76,9 +83,10 @@ export function HumanMessage({
     }
   }, [isNewMessage]);
 
-  // Hide empty, whitespace-only, or "null" messages (must be after all hooks)
+  // Hide empty, whitespace-only, "null", or Q&A vetting messages
+  // (Q&A messages are rendered in the floating header instead)
   const trimmedContent = contentString.trim().toLowerCase();
-  if (!trimmedContent || trimmedContent === "null") {
+  if (!trimmedContent || trimmedContent === "null" || isQAPairsMessage) {
     return null;
   }
 

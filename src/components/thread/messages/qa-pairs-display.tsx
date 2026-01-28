@@ -101,13 +101,13 @@ export function QAPairsDisplay({ qaPairs, opposingParty, mode = "full" }: QAPair
   return (
     <div className="w-full my-3">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-xs font-semibold text-white">
               Vetting Answers from {opposingParty}
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -134,7 +134,7 @@ export function QAPairsDisplay({ qaPairs, opposingParty, mode = "full" }: QAPair
       </div>
 
       {/* Q&A Cards */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {qaPairs.map((qa, index) => {
           const isExpanded = expandedItems.has(index);
           return (
@@ -149,7 +149,7 @@ export function QAPairsDisplay({ qaPairs, opposingParty, mode = "full" }: QAPair
               {/* Question Header */}
               <button
                 onClick={() => toggleItem(index)}
-                className="w-full flex items-start gap-3 p-3 text-left hover:bg-muted/20 transition-colors"
+                className="w-full flex items-start gap-2 p-2 text-left hover:bg-muted/20 transition-colors"
               >
                 {/* Number Badge */}
                 <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold">
@@ -180,8 +180,8 @@ export function QAPairsDisplay({ qaPairs, opposingParty, mode = "full" }: QAPair
                   isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                 )}
               >
-                <div className="overflow-hidden px-3 pb-3 pt-0">
-                  <div className="flex items-start gap-2 pl-9">
+                <div className="overflow-hidden px-2 pb-2 pt-0">
+                  <div className="flex items-start gap-1.5 pl-8">
                     <MessageSquare className="w-3 h-3 mt-1 text-emerald-400 flex-shrink-0" />
                     <p className="text-sm text-emerald-300/90 leading-relaxed">
                       {qa.answer}
@@ -192,11 +192,6 @@ export function QAPairsDisplay({ qaPairs, opposingParty, mode = "full" }: QAPair
             </div>
           );
         })}
-      </div>
-
-      {/* Footer Note */}
-      <div className="mt-3 text-xs text-muted-foreground text-center">
-        Answers verified by {opposingParty}
       </div>
     </div>
   );

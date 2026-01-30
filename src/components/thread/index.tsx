@@ -29,7 +29,7 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { QAPairsFloatingButton } from "./messages/qa-pairs-floating";
-import { parseQAPairsFromContent, deduplicateQAPairs } from "./messages/qa-pairs-utils";
+import { parseQAPairsFromContent, deduplicateQAPairs, type QAPair, type QAMode, type OpposingParty } from "./messages/qa-pairs-utils";
 import { getContentString } from "./utils";
 
 function StickyToBottomContent(props: {
@@ -205,19 +205,20 @@ export function Thread() {
     (m) => m.type === "ai" || m.type === "tool",
   );
 
-  // Create a content hash to track when message content changes (for streaming updates)
-  const messagesContentHash = useMemo(() => {
-    return messages
-      .filter((m) => m.type === "ai")
-      .map((m) => {
-        const content = m.content ?? [];
-        return getContentString(content);
-      })
-      .join("|||");
-  }, [messages]);
+  // Cache Q&A pairs per thread to persist them even if the source message disappears
+  const [cachedQAPairs, setCachedQAPairs] = useState<{
+    qaPairs: QAPair[];
+    opposingParty: OpposingParty;
+    mode: QAMode;
+  } | null>(null);
 
-  // Detect QA pairs from messages to show in the sticky header
-  const qaPairsData = useMemo(() => {
+  // Clear cache when thread changes
+  useEffect(() => {
+    setCachedQAPairs(null);
+  }, [threadId]);
+
+  // Detect QA pairs from messages (pure computation, no side effects)
+  const detectedQAPairs = useMemo(() => {
     // Prefer the most recent Q&A message so teaser can be replaced by full answers later.
     for (let i = messages.length - 1; i >= 0; i--) {
       const message = messages[i];
@@ -237,7 +238,17 @@ export function Thread() {
       }
     }
     return null;
-  }, [messages, messagesContentHash]);
+  }, [messages]);
+
+  // Update cache when new Q&A pairs are detected
+  useEffect(() => {
+    if (detectedQAPairs) {
+      setCachedQAPairs(detectedQAPairs);
+    }
+  }, [detectedQAPairs]);
+
+  // Use detected Q&A pairs if available, otherwise fall back to cached data
+  const qaPairsData = detectedQAPairs ?? cachedQAPairs;
 
   return (
     <div className="flex h-screen w-full overflow-hidden">

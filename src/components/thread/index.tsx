@@ -134,13 +134,27 @@ export function Thread() {
   useEffect(() => {
     if (
       messages.length !== prevMessageLength.current &&
-      messages?.length &&
-      messages[messages.length - 1].type === "ai"
+      messages?.length
     ) {
-      setFirstTokenReceived(true);
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.type === "ai") {
+        setFirstTokenReceived(true);
+      } else if (lastMessage.type === "tool") {
+        // When a tool message appears, reset firstTokenReceived so typing indicator stays visible
+        // until the AI message arrives
+        setFirstTokenReceived(false);
+      }
     }
 
     prevMessageLength.current = messages.length;
+  }, [messages]);
+
+  // Check if we're waiting for an AI message (last message is tool)
+  const isWaitingForAI = useMemo(() => {
+    if (!messages.length) return false;
+    const lastMessage = messages[messages.length - 1];
+    // If last message is a tool message, we're waiting for AI response
+    return lastMessage.type === "tool";
   }, [messages]);
 
   const handleSubmit = (e: FormEvent) => {
@@ -373,7 +387,7 @@ export function Thread() {
                       handleRegenerate={handleRegenerate}
                     />
                   )}
-                  {isLoading && !firstTokenReceived && (
+                  {isLoading && (!firstTokenReceived || isWaitingForAI) && (
                     <AssistantMessageLoading />
                   )}
                 </>

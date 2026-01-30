@@ -247,9 +247,6 @@ export function Thread() {
     }
   }, [detectedQAPairs]);
 
-  // Use detected Q&A pairs if available, otherwise fall back to cached data
-  const qaPairsData = detectedQAPairs ?? cachedQAPairs;
-
   return (
     <div className="flex h-screen w-full overflow-hidden">
 
@@ -297,12 +294,12 @@ export function Thread() {
               </div>
 
               {/* QA Pairs Floating Button - appears when QA message is received */}
-              {qaPairsData && (
+              {detectedQAPairs && (
                 <div className="flex justify-center">
                   <QAPairsFloatingButton
-                    qaPairs={qaPairsData.qaPairs}
-                    opposingParty={qaPairsData.opposingParty}
-                    mode={qaPairsData.mode}
+                    qaPairs={detectedQAPairs.qaPairs}
+                    opposingParty={detectedQAPairs.opposingParty}
+                    mode={detectedQAPairs.mode}
                   />
                 </div>
               )}
@@ -358,6 +355,14 @@ export function Thread() {
                       ),
                     );
                   })()}
+                  {/* Show cached Q&A pairs info when source message is gone but cache exists */}
+                  {!detectedQAPairs && cachedQAPairs && (
+                    <div className="flex justify-center my-2">
+                      <div className="px-3 py-2 rounded-lg bg-muted/50 border border-border/50 text-xs text-muted-foreground">
+                        Answer to view {cachedQAPairs.opposingParty}&apos;s responses
+                      </div>
+                    </div>
+                  )}
                   {/* Special rendering case where there are no AI/tool messages, but there is an interrupt.
                     We need to render it outside of the messages list, since there are no messages to render */}
                   {hasNoAIOrToolMessages && !!stream.interrupt && (

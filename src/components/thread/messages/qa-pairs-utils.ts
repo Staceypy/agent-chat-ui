@@ -51,6 +51,28 @@ function normalizeOpposingParty(
 }
 
 /**
+ * Check if content has a counterparty message at the end separated by \n\n
+ * Pattern: "the counterparty has answered your question: ... with the answer: ..."
+ */
+export function extractCounterpartyMessage(content: string): string | null {
+  // Check if content ends with \n\n followed by counterparty message
+  // Look for the pattern at the end of the content
+  const counterpartyPattern = /\n\nthe counterparty has answered your question:.*$/is;
+  if (counterpartyPattern.test(content)) {
+    // Find the last occurrence of \n\n followed by the counterparty message pattern
+    const lastDoubleNewline = content.lastIndexOf('\n\n');
+    if (lastDoubleNewline !== -1) {
+      const lastPart = content.substring(lastDoubleNewline + 2); // +2 to skip \n\n
+      // Verify it starts with the counterparty message pattern
+      if (lastPart.trim().match(/^the counterparty has answered your question:/i)) {
+        return lastPart.trim();
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Parse Q&A pairs from message content.
  * 
  * Full mode pattern: "here are X vetting answers from the matched buyer/seller:"
@@ -62,6 +84,9 @@ function normalizeOpposingParty(
  * Please complete your vetting..."
  * followed by numbered questions only (no answers):
  * **1. Question?**
+ * 
+ * If the message contains a counterparty message at the end (separated by \n\n),
+ * only the part before \n\n is used for Q&A parsing.
  */
 export function parseQAPairsFromContent(
   content: string,
@@ -71,8 +96,14 @@ export function parseQAPairsFromContent(
   opposingParty: OpposingParty;
   mode: QAMode;
 } | null {
+  // Check if there's a counterparty message at the end - if so, only parse Q&A from the first part
+  const counterpartyMessage = extractCounterpartyMessage(content);
+  const qaContent = counterpartyMessage 
+    ? content.substring(0, content.lastIndexOf('\n\n'))
+    : content;
+
   // Check for FULL mode: "here are X vetting answers from..."
-  const fullHeaderMatch = content.match(
+  const fullHeaderMatch = qaContent.match(
     /here are (\d+) vetting answers from the matched (buyer|seller|opposing party):/i
   );
   
@@ -89,7 +120,7 @@ export function parseQAPairsFromContent(
     const qaPattern = /\*\*(\d+)\.\s*([^*]+)\*\*\s*\n([^\n*]+(?:\n(?!\*\*\d+\.)[^\n*]+)*)/g;
     let match;
 
-    while ((match = qaPattern.exec(content)) !== null) {
+    while ((match = qaPattern.exec(qaContent)) !== null) {
       const question = match[2].trim();
       const answer = match[3].trim();
       qaPairs.push({ question, answer });
@@ -103,7 +134,7 @@ export function parseQAPairsFromContent(
   }
 
   // Check for TEASER mode: "The matched buyer/seller has answered X vetting questions..."
-  const teaserHeaderMatch = content.match(
+  const teaserHeaderMatch = qaContent.match(
     /The matched (buyer|seller|opposing party) has answered (\d+) vetting questions?\./i
   );
 
@@ -120,7 +151,7 @@ export function parseQAPairsFromContent(
     const questionPattern = /\*\*(\d+)\.\s*([^*]+?)\*\*/g;
     let match;
 
-    while ((match = questionPattern.exec(content)) !== null) {
+    while ((match = questionPattern.exec(qaContent)) !== null) {
       const question = match[2].trim();
       qaPairs.push({ question, answer: "" });
     }

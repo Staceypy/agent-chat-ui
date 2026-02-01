@@ -11,7 +11,7 @@ import { ThreadView } from "../agent-inbox";
 import { GenericInterruptView } from "./generic-interrupt";
 import { useArtifact } from "../artifact";
 import { useState, useEffect, useMemo } from "react";
-import { parseQAPairsFromContent } from "./qa-pairs-utils";
+import { parseQAPairsFromContent, extractCounterpartyMessage } from "./qa-pairs-utils";
 
 function CustomComponent({
   message,
@@ -110,6 +110,11 @@ export function AssistantMessage({
     return parsed !== null;
   }, [contentString]);
 
+  // Check if there's a counterparty message at the end (separated by \n\n)
+  const counterpartyMessage = useMemo(() => {
+    return extractCounterpartyMessage(contentString);
+  }, [contentString]);
+
   // Hide tool results completely
   const isToolResult = message?.type === "tool";
   if (isToolResult) {
@@ -122,7 +127,62 @@ export function AssistantMessage({
     return null;
   }
 
-  // Hide Q&A pairs messages in the chat flow (both full + teaser)
+  // If message has Q&A pairs AND a counterparty message, only hide the Q&A part
+  // and display the counterparty message part
+  if (isQAPairsMessage && counterpartyMessage) {
+    // Display only the counterparty message part
+    return (
+      <div className="group flex w-full items-start gap-2">
+        <div className="flex w-full flex-col gap-2">
+          {/* AI message content - only the counterparty message part */}
+          <div className="flex-1 text-white">
+            <div className="py-1">
+              <MarkdownText>{counterpartyMessage}</MarkdownText>
+            </div>
+            {/* Timestamp under the text */}
+            <span className="text-muted-foreground text-sm font-mono">
+              {formatMessageTimestamp(timestamp)}
+            </span>
+          </div>
+
+          {message && (
+            <CustomComponent
+              message={message}
+              thread={thread}
+            />
+          )}
+          
+          <Interrupt
+            interrupt={threadInterrupt}
+            isLastMessage={isLastMessage}
+            hasNoAIOrToolMessages={hasNoAIOrToolMessages}
+          />
+          
+          <div
+            className={cn(
+              "flex items-center gap-2 transition-opacity",
+              "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100",
+            )}
+          >
+            <BranchSwitcher
+              branch={meta?.branch}
+              branchOptions={meta?.branchOptions}
+              onSelect={(branch) => thread.setBranch(branch)}
+              isLoading={isLoading}
+            />
+            <CommandBar
+              content={counterpartyMessage}
+              isLoading={isLoading}
+              isAiMessage={true}
+              handleRegenerate={() => handleRegenerate(parentCheckpoint)}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Hide Q&A pairs messages in the chat flow (both full + teaser) if no counterparty message
   if (isQAPairsMessage) {
     return null;
   }

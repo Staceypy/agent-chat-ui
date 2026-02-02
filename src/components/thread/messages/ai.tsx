@@ -60,12 +60,14 @@ function Interrupt({
   return (
     <>
       {isAgentInboxInterruptSchema(interrupt) &&
-        (isLastMessage || hasNoAIOrToolMessages) && (
+        isLastMessage &&
+        !hasNoAIOrToolMessages && (
           <ThreadView interrupt={interrupt} />
         )}
       {interrupt &&
       !isAgentInboxInterruptSchema(interrupt) &&
-      (isLastMessage || hasNoAIOrToolMessages) ? (
+      isLastMessage &&
+      !hasNoAIOrToolMessages ? (
         <GenericInterruptView interrupt={fallbackValue} />
       ) : null}
     </>

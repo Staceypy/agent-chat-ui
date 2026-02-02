@@ -227,9 +227,6 @@ export function Thread() {
   };
 
   const chatStarted = !!threadId || !!messages.length;
-  const hasNoAIOrToolMessages = !messages.find(
-    (m) => m.type === "ai" || m.type === "tool",
-  );
 
   // Cache Q&A pairs per thread to persist them even if the source message disappears
   const [cachedQAPairs, setCachedQAPairs] = useState<{
@@ -388,16 +385,6 @@ export function Thread() {
                         Answer to view {cachedQAPairs.opposingParty}&apos;s responses
                       </div>
                     </div>
-                  )}
-                  {/* Special rendering case where there are no AI/tool messages, but there is an interrupt.
-                    We need to render it outside of the messages list, since there are no messages to render */}
-                  {hasNoAIOrToolMessages && !!stream.interrupt && (
-                    <AssistantMessage
-                      key="interrupt-msg"
-                      message={undefined}
-                      isLoading={isLoading}
-                      handleRegenerate={handleRegenerate}
-                    />
                   )}
                   {isLoading && (!firstTokenReceived || isWaitingForAI) && (
                     <AssistantMessageLoading />

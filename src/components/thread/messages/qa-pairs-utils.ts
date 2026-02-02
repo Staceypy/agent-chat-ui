@@ -57,7 +57,8 @@ function normalizeOpposingParty(
 export function extractCounterpartyMessage(content: string): string | null {
   // Check if content ends with \n\n followed by counterparty message
   // Look for the pattern at the end of the content
-  const counterpartyPattern = /\n\nthe counterparty has answered your question:.*$/is;
+  // Use [\s\S]* instead of dotAll flag to support older JS targets
+  const counterpartyPattern = /\n\nthe counterparty has answered your question:[\s\S]*$/i;
   if (counterpartyPattern.test(content)) {
     // Find the last occurrence of \n\n followed by the counterparty message pattern
     const lastDoubleNewline = content.lastIndexOf('\n\n');

@@ -178,20 +178,12 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
-    // Get the latest checkpoint from the last message, if any
-    const lastMessage = messages[messages.length - 1];
-    const lastMeta = lastMessage
-      ? stream.getMessagesMetadata(lastMessage)
-      : undefined;
-    const latestCheckpoint = lastMeta?.firstSeenState?.parent_checkpoint;
-
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },
       {
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
-        checkpoint: latestCheckpoint,
         optimisticValues: (prev) => ({
           ...prev,
           context,

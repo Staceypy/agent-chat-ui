@@ -85,11 +85,25 @@ export function HumanMessage({
   const handleSubmitEdit = () => {
     setIsEditing(false);
 
-    const newMessage: Message = { 
-      type: "human", 
+    const newMessage: Message = {
+      type: "human",
       content: value,
       timestamp: new Date().toISOString(),
     } as Message & { timestamp: string };
+
+    // Debug: user edited and resubmitted a message
+    try {
+      console.debug("[AgentChat][EditResubmit] Submitting edited human message", {
+        originalMessageId: message.id,
+        originalContent: contentString,
+        newContent: value,
+        parentCheckpointId: parentCheckpoint ?? null,
+        branch: meta?.branch ?? null,
+      });
+    } catch {
+      // Swallow logging errors to avoid impacting UX
+    }
+
     thread.submit(
       { messages: [newMessage] },
       {

@@ -178,12 +178,20 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
+    // Get the latest checkpoint from the last message, if any
+    const lastMessage = messages[messages.length - 1];
+    const lastMeta = lastMessage
+      ? stream.getMessagesMetadata(lastMessage)
+      : undefined;
+    const latestCheckpoint = lastMeta?.firstSeenState?.parent_checkpoint;
+
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },
       {
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
+        checkpoint: latestCheckpoint,
         optimisticValues: (prev) => ({
           ...prev,
           context,
@@ -206,6 +214,18 @@ export function Thread() {
     // Do this so the loading state is correct
     prevMessageLength.current = prevMessageLength.current - 1;
     setFirstTokenReceived(false);
+
+    // Debug: user requested AI regenerate from a checkpoint
+    try {
+      console.debug("[AgentChat][Regenerate] Regenerating from checkpoint", {
+        parentCheckpointId: parentCheckpoint ?? null,
+        threadId,
+        lastMessageId: messages[messages.length - 1]?.id ?? null,
+      });
+    } catch {
+      // Swallow logging errors to avoid impacting UX
+    }
+
     stream.submit(undefined, {
       checkpoint: parentCheckpoint,
       streamMode: ["values"],

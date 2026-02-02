@@ -80,6 +80,23 @@ export function BranchSwitcher({
   if (!branchOptions || !branch) return null;
   const index = branchOptions.indexOf(branch);
 
+  const handleSelectBranch = (nextBranch: string, direction: "prev" | "next") => {
+    // Debug: user switched between branches
+    try {
+      console.debug("[AgentChat][BranchSwitch] Switching branch", {
+        currentBranch: branch,
+        nextBranch,
+        direction,
+        index: branchOptions.indexOf(branch),
+        totalBranches: branchOptions.length,
+      });
+    } catch {
+      // Swallow logging errors to avoid impacting UX
+    }
+
+    onSelect(nextBranch);
+  };
+
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -89,7 +106,7 @@ export function BranchSwitcher({
         onClick={() => {
           const prevBranch = branchOptions[index - 1];
           if (!prevBranch) return;
-          onSelect(prevBranch);
+          handleSelectBranch(prevBranch, "prev");
         }}
         disabled={isLoading}
       >
@@ -105,7 +122,7 @@ export function BranchSwitcher({
         onClick={() => {
           const nextBranch = branchOptions[index + 1];
           if (!nextBranch) return;
-          onSelect(nextBranch);
+          handleSelectBranch(nextBranch, "next");
         }}
         disabled={isLoading}
       >

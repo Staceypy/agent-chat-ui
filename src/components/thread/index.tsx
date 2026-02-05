@@ -173,14 +173,23 @@ export function Thread() {
       timestamp: new Date().toISOString(),
     } as Message & { timestamp: string };
 
-    const toolMessages = ensureToolCallsHaveResponses(stream.messages);
+    // Capture the current messages (including any from external runs via polling)
+    const currentMessages = stream.messages;
+    const toolMessages = ensureToolCallsHaveResponses(currentMessages);
 
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
+    // Pass checkpoint: null so the SDK sends no checkpoint to the server.
+    // The server will then use the thread's latest checkpoint automatically.
+    // This is critical when runs were created externally (e.g., via the Python SDK),
+    // because the useStream hook's internal history may be stale and would otherwise
+    // resolve to an old checkpoint, causing the new run to branch from before
+    // the external runs and effectively wiping out their messages.
     stream.submit(
       { messages: [...toolMessages, newHumanMessage], context },
       {
+        checkpoint: null,
         streamMode: ["values"],
         streamSubgraphs: true,
         streamResumable: true,
@@ -188,7 +197,9 @@ export function Thread() {
           ...prev,
           context,
           messages: [
-            ...(prev.messages ?? []),
+            // Use currentMessages (which includes polled data from external runs)
+            // instead of prev.messages which may be from stale internal history
+            ...currentMessages,
             ...toolMessages,
             newHumanMessage,
           ],

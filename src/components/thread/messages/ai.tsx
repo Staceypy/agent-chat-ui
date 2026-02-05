@@ -47,6 +47,19 @@ interface InterruptProps {
   hasNoAIOrToolMessages: boolean;
 }
 
+function isBreakpointOnlyInterrupt(interrupt: unknown): boolean {
+  // The SDK returns { when: "breakpoint" } as a pure metadata marker when the
+  // graph stopped at a breakpoint (or when the hook's stale history shows
+  // pending next nodes). This contains no actual interrupt data to display.
+  return (
+    interrupt != null &&
+    typeof interrupt === "object" &&
+    !Array.isArray(interrupt) &&
+    (interrupt as any).when === "breakpoint" &&
+    !("value" in (interrupt as any))
+  );
+}
+
 function Interrupt({
   interrupt,
   isLastMessage,
@@ -66,6 +79,7 @@ function Interrupt({
         )}
       {interrupt &&
       !isAgentInboxInterruptSchema(interrupt) &&
+      !isBreakpointOnlyInterrupt(interrupt) &&
       isLastMessage &&
       !hasNoAIOrToolMessages ? (
         <GenericInterruptView interrupt={fallbackValue} />
